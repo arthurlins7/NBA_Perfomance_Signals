@@ -28,29 +28,52 @@ def get_current_season() -> str:
         return f"{year - 1}-{str(year)[-2:]}"
 
 def fetch_yesterday_games(date_str: str) -> pd.DataFrame:
-    print(f"Buscando jogos de {date_str} na API da NBA...")
     season = get_current_season()
-    logs = playergamelogs.PlayerGameLogs(
-        season_nullable=season,
-        date_from_nullable=date_str,
-        date_to_nullable=date_str,
-    )
-    df = logs.get_data_frames()[0]
-    if df.empty:
-        print("Nenhum jogo encontrado.")
+    print(f"Buscando jogos de {date_str}...")
+    try:
+        from nba_api.stats.endpoints import playergamelogs
+        import time
+
+        headers = {
+            'Host': 'stats.nba.com',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'x-nba-stats-origin': 'stats',
+            'x-nba-stats-token': 'true',
+            'Referer': 'https://www.nba.com/',
+            'Connection': 'keep-alive',
+        }
+
+        logs = playergamelogs.PlayerGameLogs(
+            season_nullable=season,
+            date_from_nullable=date_str,
+            date_to_nullable=date_str,
+            headers=headers,
+            timeout=60,
+        )
+
+        df = logs.get_data_frames()[0]
+        if df.empty:
+            print(f"Nenhum jogo em {date_str}")
+            return df
+
+        colunas_rank = [col for col in df.columns if col.endswith('_RANK')]
+        df = df.drop(columns=colunas_rank)
+        df = df[df['MIN'] > 0]
+        df['GAME_DATE'] = pd.to_datetime(df['GAME_DATE'])
+        df['HOME_GAME'] = df['MATCHUP'].str.contains('vs.').astype(int)
+        df['AGAINST'] = df['MATCHUP'].str.split(' ').str[-1]
+        df = df.drop(columns=['MATCHUP'])
+        df['PLAYER_ID'] = df['PLAYER_ID'].astype(str)
+        df['SEASON'] = season
+        print(f"{len(df)} registros encontrados.")
         return df
 
-    colunas_rank = [col for col in df.columns if col.endswith('_RANK')]
-    df = df.drop(columns=colunas_rank)
-    df = df[df['MIN'] > 0]
-    df['GAME_DATE'] = pd.to_datetime(df['GAME_DATE'])
-    df['HOME_GAME'] = df['MATCHUP'].str.contains('vs.').astype(int)
-    df['AGAINST'] = df['MATCHUP'].str.split(' ').str[-1]
-    df = df.drop(columns=['MATCHUP'])
-    df['PLAYER_ID'] = df['PLAYER_ID'].astype(str)
-    df['SEASON'] = season
-    print(f"{len(df)} registros encontrados.")
-    return df
+    except Exception as e:
+        print(f"Erro ao buscar jogos de {date_str}: {e}")
+        return pd.DataFrame()
 
 def calculate_zscores(df_new: pd.DataFrame) -> pd.DataFrame:
     print("Calculando Z-Scores...")
