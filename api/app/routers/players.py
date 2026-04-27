@@ -1,20 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.player import PlayerOut
-from app.db import models
+from app.services.analyzer import (
+    get_players,
+    get_player_history,
+    get_player_alerts,
+    get_global_alerts,
+    get_isolated_alerts,
+)
 
-router = APIRouter()
+router = APIRouter(prefix="/players", tags=["players"])
 
-
-@router.get("/", response_model=list[PlayerOut])
+@router.get("/")
 def list_players(db: Session = Depends(get_db)):
-    return db.query(models.Player).all()
+    return get_players(db)
 
+@router.get("/alerts")
+def global_alerts(limit: int = 50, db: Session = Depends(get_db)):
+    return get_global_alerts(db, limit)
 
-@router.get("/{player_id}", response_model=PlayerOut)
-def get_player(player_id: int, db: Session = Depends(get_db)):
-    player = db.query(models.Player).filter(models.Player.id == player_id).first()
-    if not player:
-        raise HTTPException(status_code=404, detail="Player not found")
-    return player
+@router.get("/alerts/isolated")
+def isolated_alerts(limit: int = 50, db: Session = Depends(get_db)):
+    return get_isolated_alerts(db, limit)
+
+@router.get("/{player_id}/history")
+def player_history(player_id: str, limit: int = 20, db: Session = Depends(get_db)):
+    return get_player_history(db, player_id, limit)
+
+@router.get("/{player_id}/alerts")
+def player_alerts(player_id: str, db: Session = Depends(get_db)):
+    return get_player_alerts(db, player_id)

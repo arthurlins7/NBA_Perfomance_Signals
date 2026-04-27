@@ -1,30 +1,36 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, String, Integer, Float, Date, Boolean
+from app.db.session import Base
 
-Base = declarative_base()
+class PlayerGameLog(Base):
+    __tablename__ = "nba_gold"
 
-
-class Team(Base):
-    __tablename__ = "teams"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)
-    city = Column(String)
-    conference = Column(String)
-
-    players = relationship("Player", back_populates="team_rel")
-
-
-class Player(Base):
-    __tablename__ = "players"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    position = Column(String)
-    team = Column(String)
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
-    points_per_game = Column(Float, default=0.0)
-    assists_per_game = Column(Float, default=0.0)
-    rebounds_per_game = Column(Float, default=0.0)
-
-    team_rel = relationship("Team", back_populates="players")
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    season = Column(String)
+    player_id = Column(String, index=True)
+    player_name = Column(String, index=True)
+    team_id = Column(String)
+    team_abbreviation = Column(String, index=True)
+    team_name = Column(String)
+    game_id = Column(String, unique=True, index=True)
+    game_date = Column(Date, index=True)
+    wl = Column(String)
+    min = Column(Float)
+    pts = Column(Float)
+    reb = Column(Float)
+    ast = Column(Float)
+    stl = Column(Float)
+    blk = Column(Float)
+    tov = Column(Float)
+    fg_pct = Column(Float)
+    plus_minus = Column(Float)
+    home_game = Column(Boolean)
+    against = Column(String)
+    pts_zscore = Column(Float)
+    reb_zscore = Column(Float)
+    ast_zscore = Column(Float)
+    stl_zscore = Column(Float)
+    blk_zscore = Column(Float)
+    tov_zscore = Column(Float)
+    fg_pct_zscore = Column(Float)
+    plus_minus_zscore = Column(Float)
+    global_zscore = Column(Float)

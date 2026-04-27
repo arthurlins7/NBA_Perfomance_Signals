@@ -1,12 +1,24 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.routers import players, teams
+from app.db.session import engine
+from app.db import models
 
-app = FastAPI(title="NBA Performance Signals API", version="1.0.0")
+models.Base.metadata.create_all(bind=engine)
 
-app.include_router(players.router, prefix="/players", tags=["players"])
-app.include_router(teams.router, prefix="/teams", tags=["teams"])
+app = FastAPI(title="NBA Performance Signals API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(players.router)
+app.include_router(teams.router)
 
 @app.get("/")
 def root():
-    return {"message": "NBA Performance Signals API is running"}
+    return {"status": "ok", "message": "NBA Performance Signals API"}
