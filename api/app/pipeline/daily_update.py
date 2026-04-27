@@ -156,13 +156,25 @@ def load_to_db(df: pd.DataFrame):
 
 def run():
     date_str = get_yesterday()
-    df = fetch_yesterday_games(date_str)
-    if df.empty:
-        print("Pipeline encerrado: sem jogos para processar.")
-        return
-    df_with_zscores = calculate_zscores(df)
-    load_to_db(df_with_zscores)
-    print("Pipeline diário concluído.")
+
+    MAX_RETRIES = 3
+    RETRY_DELAY = 30  # segundos entre tentativas
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        print(f"Tentativa {attempt}/{MAX_RETRIES} — buscando jogos de {date_str}...")
+        df_new = fetch_yesterday_games(date_str)
+
+        if not df_new.empty:
+            df_gold = calculate_zscores(df_new)
+            load_to_db(df_gold)
+            print("Pipeline diário concluído com sucesso.")
+            return
+
+        if attempt < MAX_RETRIES:
+            print(f"Sem dados. Aguardando {RETRY_DELAY}s antes de tentar novamente...")
+            time.sleep(RETRY_DELAY)
+
+    print(f"Pipeline encerrado após {MAX_RETRIES} tentativas sem dados.")
 
 if __name__ == "__main__":
     run()
