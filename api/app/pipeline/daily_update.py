@@ -10,7 +10,7 @@ from nba_api.stats.endpoints import playergamelogs
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
 
 METRICAS = ['PTS', 'MIN', 'REB', 'AST', 'STL', 'BLK', 'TOV', 'FG_PCT', 'PLUS_MINUS']
 WINDOW = 5
@@ -123,7 +123,7 @@ def load_to_db(df: pd.DataFrame):
     print("Inserindo no banco...")
     rename_map = {
         'SEASON': 'season', 'PLAYER_ID': 'player_id', 'PLAYER_NAME': 'player_name',
-        'TEAM_ABBREVIATION': 'team_abbreviation', 'TEAM_NAME': 'team_name',
+        'TEAM_ID': 'team_id', 'TEAM_ABBREVIATION': 'team_abbreviation', 'TEAM_NAME': 'team_name',
         'GAME_ID': 'game_id', 'GAME_DATE': 'game_date', 'WL': 'wl',
         'MIN': 'min', 'PTS': 'pts', 'REB': 'reb', 'AST': 'ast',
         'STL': 'stl', 'BLK': 'blk', 'TOV': 'tov', 'FG_PCT': 'fg_pct',
@@ -143,8 +143,8 @@ def load_to_db(df: pd.DataFrame):
     with engine.connect() as conn:
         for _, row in df.iterrows():
             exists = conn.execute(
-                text("SELECT 1 FROM nba_gold WHERE game_id = :gid"),
-                {"gid": str(row['game_id'])}
+                text("SELECT 1 FROM nba_gold WHERE game_id = :gid AND player_id = :pid"),
+                {"gid": str(row['game_id']), "pid": str(row['player_id'])}
             ).fetchone()
             if not exists:
                 row_dict = row.where(pd.notnull(row), None).to_dict()

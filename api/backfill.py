@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 from nba_api.stats.endpoints import playergamelogs
-from app.pipeline.daily_update import calculate_zscores, load_to_db, get_current_season
+from app.pipeline.daily_update import calculate_zscores, load_to_db
 
 load_dotenv()
 
@@ -36,8 +36,14 @@ def get_missing_dates():
 
     return dates
 
+def season_for_date(date_str: str) -> str:
+    """Temporada da NBA a que a data pertence (ex: 2026-05-10 -> 2025-26)."""
+    d = datetime.strptime(date_str, '%Y-%m-%d')
+    year = d.year if d.month >= 10 else d.year - 1
+    return f"{year}-{str(year + 1)[-2:]}"
+
 def fetch_games_for_date(date_str: str) -> pd.DataFrame:
-    season = get_current_season()
+    season = season_for_date(date_str)
     print(f"Buscando jogos de {date_str}...")
     try:
         logs = playergamelogs.PlayerGameLogs(
